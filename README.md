@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Use `npm run lint` for code checks and `npm run build` for a production build.
+Open `http://localhost:3000`. Use `npm run lint` for code checks, `npm run typecheck` for strict TypeScript validation, and `npm run build` for a production build.
 
 ## Environment
 
@@ -52,12 +52,12 @@ English and French copy lives together in `lib/content.ts`, which makes page par
 ## Deploy to Vercel
 
 1. Push the repository to GitHub, GitLab or Bitbucket.
-2. Import it in Vercel and use the detected framework settings.
+2. Import it in Vercel. Set **Framework Preset** to **Next.js** and leave **Root Directory** at the repository root.
 3. Add the variables from `.env.example` in Vercel project settings.
 4. Deploy, test both locale trees, then assign `ax7mov.com` under **Settings → Domains**.
 5. At the domain registrar, add the DNS records Vercel displays. Set `NEXT_PUBLIC_SITE_URL=https://ax7mov.com`, redeploy, and verify the canonical links and sitemap.
 
-The supplied Sites/Vite preview configuration is used for the local Codex preview. If deploying strictly with standard Next.js on Vercel, migrate the app surface into a standard Next.js App Router project while preserving `app`, `components`, `lib`, `public` and `sanity`.
+This repository is a standard Next.js App Router project and needs no custom output directory. If an earlier Vercel deployment used another preset or output directory, clear those overrides before redeploying.
 
 ## SEO and accessibility
 
