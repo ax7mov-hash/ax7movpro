@@ -28,13 +28,13 @@ export function SiteChrome({ locale, children }: { locale: Locale; children: Rea
   }, [open]);
 
   return <>
-    <MotionProvider />
+    <MotionProvider key={pathname} />
     <header className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
       <Link href={`/${locale}`} aria-label="AX7MOV home"><Logo light /></Link>
       <nav className="desktop-nav" aria-label="Primary navigation">{nav.map(([label, href]) => <Link key={href} className={pathname === href ? "active" : ""} href={href}>{label}</Link>)}</nav>
       <div className="header-actions">
         <Link className="language-switch" href={alternate} hrefLang={locale === "en" ? "fr" : "en"} aria-label={locale === "en" ? "Passer en français" : "Switch to English"}>{locale === "en" ? "FR" : "EN"}</Link>
-        <a className="header-talk" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">{t.nav.talk} <span aria-hidden="true">↗</span></a>
+        <a className="header-talk" data-magnetic href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">{t.nav.talk} <span aria-hidden="true">↗</span></a>
         <button ref={menuButton} className="menu-toggle" type="button" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? t.nav.close : t.nav.menu} onClick={() => setOpen((value) => !value)}><span /><span /></button>
       </div>
     </header>
@@ -43,7 +43,7 @@ export function SiteChrome({ locale, children }: { locale: Locale; children: Rea
       <div className="mobile-menu-foot"><a href={`mailto:${EMAIL}`}>{EMAIL}</a><p>Paris, France</p></div>
     </div>
     {children}
-    <a className="floating-whatsapp" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label={t.contactWhatsApp}><span className="wa-icon" aria-hidden="true">↗</span><span>WhatsApp</span></a>
+    <a className="floating-whatsapp" data-magnetic href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label={t.contactWhatsApp}><span className="wa-icon" aria-hidden="true">↗</span><span>WhatsApp</span></a>
     <footer className="site-footer">
       <div className="footer-lead"><Logo light /><p>{t.footerLine}</p></div>
       <nav aria-label="Footer navigation">{nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</nav>

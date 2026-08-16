@@ -27,8 +27,8 @@ export function ProjectGrid({ projects, locale, limit, interactive = false }: { 
     <div className={`project-grid ${interactive ? "gallery-grid" : ""}`}>
       {items.map((project, index) => {
         const media = <><Image src={project.coverImage} alt={project.alt[locale]} fill sizes="(max-width: 760px) 100vw, 55vw" style={{ objectPosition: project.position }} priority={index < 2} /><span className="project-shade" />{project.mediaType === "video" && <span className="media-badge"><i aria-hidden="true">▶</i> Film</span>}</>;
-        return <article className={`project-card aspect-${project.aspect}`} key={project.slug} data-reveal>
-          {interactive ? <button className="project-media" onClick={(event) => { opener.current = event.currentTarget; setActive(index); }} aria-label={`${t.openProject}: ${project.title[locale]}`}>{media}</button> : <div className="project-media" data-parallax>{media}</div>}
+        return <article className={`project-card aspect-${project.aspect}`} key={project.slug} data-tilt data-cursor-label={t.openProject}>
+          {interactive ? <button className="project-media" data-image-reveal onClick={(event) => { opener.current = event.currentTarget; setActive(index); }} aria-label={`${t.openProject}: ${project.title[locale]}`}>{media}</button> : <div className="project-media" data-image-reveal data-parallax>{media}</div>}
           <div className="project-meta"><div><p>{project.category[locale]} · {project.year}</p><h3>{project.title[locale]}</h3></div><span>{String(index + 1).padStart(2, "0")}</span></div>
         </article>;
       })}

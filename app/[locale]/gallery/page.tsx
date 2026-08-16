@@ -10,5 +10,5 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function GalleryPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params; if (!isLocale(locale)) notFound(); const t = copy[locale]; const projects = await getProjects();
-  return <main className="inner-page gallery-page"><section className="page-hero gallery-hero"><p className="eyebrow">{t.galleryEyebrow}</p><h1>{t.galleryTitle}</h1><p>{t.galleryIntro}</p></section><section className="gallery-work"><ProjectGrid projects={projects} locale={locale} interactive /></section></main>;
+  return <main className="inner-page gallery-page"><section className="page-hero gallery-hero"><p className="eyebrow">{t.galleryEyebrow}</p><h1 data-text-reveal>{t.galleryTitle}</h1><p data-reveal>{t.galleryIntro}</p></section><section className="gallery-work"><ProjectGrid projects={projects} locale={locale} interactive /></section></main>;
 }
