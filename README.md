@@ -1,64 +1,136 @@
 # AX7MOV portfolio
 
-A bilingual, cinematic photography and videography portfolio for Athulkrishna. The public routes are `/en`, `/en/about`, `/en/gallery`, `/en/contact` and matching `/fr` routes. `/` redirects to English. `/en/studio` and `/fr/studio` explain and link to the protected Sanity administration area.
+A bilingual, cinematic photography and filmmaking portfolio for Athulkrishna / AX7MOV. The site is built with Next.js App Router, TypeScript, Tailwind CSS, next-intl, GSAP, Lenis, and Sanity, and is ready for Vercel.
 
-## Run locally
+## Routes
 
-Requires Node.js 22.13 or newer.
+Public pages are available in English and French:
+
+- `/en` and `/fr` — home
+- `/en/about` and `/fr/about` — biography, approach, and process
+- `/en/gallery` and `/fr/gallery` — combined photo/video gallery with accessible lightbox
+- `/en/contact` and `/fr/contact` — direct WhatsApp, email, phone, and Instagram actions
+- `/studio` — setup guidance for the linked standalone Sanity Studio
+
+The site redirects `/` to `/en`. Language switching preserves the current page.
+
+## Local development
+
+Requires a current LTS-compatible Node.js runtime and npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Use `npm run lint` for code checks, `npm run typecheck` for strict TypeScript validation, and `npm run build` for a production build.
+Open the local URL printed by Next.js. Other useful commands:
 
-## Environment
+```bash
+npm run format
+npm run lint
+npm run typecheck
+npm run build
+npm run start
+```
 
-Copy `.env.example` to `.env.local`. The site runs without any CMS credentials by using strongly typed fallback content from `lib/content.ts`.
+## Secure admin and MongoDB Atlas
 
-- `NEXT_PUBLIC_SITE_URL` — canonical production origin; defaults to `https://ax7mov.com`
-- `NEXT_PUBLIC_SANITY_PROJECT_ID` — Sanity project ID
-- `NEXT_PUBLIC_SANITY_DATASET` — normally `production`
-- `NEXT_PUBLIC_SANITY_API_VERSION` — pinned query API version
-- `NEXT_PUBLIC_SANITY_STUDIO_URL` — the URL of the authenticated hosted Sanity Studio
-- `SANITY_API_READ_TOKEN` — optional server-only token for private draft preview; never expose this in browser code
+The `/admin` page manages portfolio projects, every bundled portfolio/showcase image, the homepage hero, external video cards, and client reviews stored in MongoDB Atlas. It uploads public images and video thumbnails to Vercel Blob and lets the signed-in administrator change the account password. Each default-image replacement can be restored to its bundled fallback. Published reviews appear on the localized homepage. The built-in `/media/midnight-velocity.png` hero remains the automatic fallback whenever no managed hero is saved or Atlas is unavailable. MongoDB content is the first public-site source; if Atlas is unconfigured, unavailable, or empty, the existing Sanity/local content remains visible.
 
-## Connect Sanity
+Admin image uploads accept JPG, PNG, WebP, and AVIF files up to 4 MB. Images are decoded server-side and limited to 40 megapixels and 8,000 px on either side. Portfolio/default images must be at least 640 × 400 px; hero images must be at least 1,200 × 600 px.
 
-1. Create a project at Sanity and deploy or host Sanity Studio.
-2. Import `schemaTypes` from `sanity/schemaTypes.ts` into the Studio configuration's `schema.types` array.
-3. Add the public project ID, dataset, API version and Studio URL to `.env.local` and to the deployment environment.
-4. Add `https://ax7mov.com` and local development origins to Sanity CORS settings.
+Selecting a new image in **Projects**, **Images**, or **Hero**, or choosing **Edit current image**, opens the shared editor. It supports original, square, portrait, and wide crops; crop-aware output width and height; image-based, 1280px, and 1920px resolution presets; 90° rotation; zoom and crop positioning; brightness, contrast, and saturation adjustments; reset; and an unedited-upload option. Edited files are exported at the selected resolution as compressed WebP images before the same server-side limits are applied. Project and bundled-photo editors also save bilingual card names and descriptions with the image.
 
-Sanity authentication protects the administration area. This website does not implement a custom password screen.
+The **Videos** section creates homepage and gallery cards from validated YouTube or Instagram links and an uploaded thumbnail. Administrators can choose 9:16 reel or 16:9 widescreen presentation, ordering and placement, published state, autoplay, and loop. YouTube cards use an inline privacy-enhanced player with native play, pause, volume, timeline, and fullscreen controls; muted autoplay honors reduced-motion preferences and can loop. Instagram cards retain the uploaded thumbnail and open the original Instagram link because Instagram controls embed playback.
 
-### Add or edit a project
+1. Copy `.env.example` to `.env.local`.
+2. Create an Atlas database user with read/write access only to the configured database. Keep Atlas TLS enabled and restrict network access to the deployment environment.
+3. Connect a public Vercel Blob store to the project. For the recommended OIDC
+   connection, run `vercel env pull` locally and provide both
+   `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`. A legacy
+   `BLOB_READ_WRITE_TOKEN` remains supported as an alternative.
+4. Generate the admin password hash and paste the escaped output into `ADMIN_PASSWORD_HASH`:
 
-Open the configured Sanity Studio, select **Project**, fill both English and French fields, upload a cover, set media type and order, then enable **Published**. If Sanity is not connected, edit `projects` in `lib/content.ts` instead.
+```bash
+npm run admin:hash -- "A-unique-long-password"
+```
 
-### Add selected Instagram posts
+5. Generate the JWT secret with `openssl rand -base64 64`, set the exact `SITE_ORIGIN`, restart the app, and visit `/admin`.
 
-Create an **Instagram selection** document and paste the real public post URL. Add a fallback image, caption, alternative text and display order, then publish it. Do not add a profile URL as a post. The page deliberately shows curated image placeholders until valid individual post URLs exist; it never embeds the full profile in an iframe.
+Admin sessions are short-lived signed JWTs in HttpOnly, Secure, SameSite=Strict cookies and are backed by revocable MongoDB session records. Mutations also require same-origin and CSRF checks. Login attempts are rate-limited, uploads are size/type/signature checked, and admin actions are recorded in a 90-day audit log. Never commit `.env.local`, Atlas credentials, Blob or OIDC credentials, hashes, or JWT secrets.
 
-## Replace images and video
+The environment password hash is the initial credential. After the first password change in **Admin → Security**, the replacement bcrypt hash is stored in MongoDB and takes precedence. Changing it revokes every other active admin session while keeping the current session open. For account recovery, remove the `primary` record from the `adminCredentials` collection; the configured environment hash will become active again.
 
-See `CONTENT.md` for the asset checklist. Keep image dimensions generous and compressed, preserve the existing filenames where convenient, and add meaningful alternative text. The hero uses an animated poster until an AX7MOV showreel is supplied.
+## Sanity setup
 
-## Edit translations and contact details
+The public site always has typed local fallback content, so it works without credentials. To connect a real Sanity dataset:
 
-English and French copy lives together in `lib/content.ts`, which makes page parity easy to review. Email, phone, WhatsApp message, production URL and Instagram link are centralised in `lib/config.ts`. Empty future social links are intentionally not rendered.
+1. Create a Sanity project at [sanity.io/manage](https://www.sanity.io/manage).
+2. Create a `production` dataset (or choose another dataset name).
+3. Copy `.env.example` to `.env.local`.
+4. Add the project ID and dataset:
+
+```env
+NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id
+NEXT_PUBLIC_SANITY_DATASET=production
+```
+
+`SANITY_API_READ_TOKEN` is reserved for a future private dataset workflow. It is not needed for a public read-only dataset and is never exposed in browser code.
+
+Restart the development server, then run `npm run studio` and open the local URL printed by Sanity (normally port 3333). The `/studio` route provides the same setup reminder without bundling authoring tools into the public Vercel runtime. Add the Studio URL, `http://localhost:3000`, and the production domain as CORS origins in Sanity project settings if prompted. Authentication and write access remain managed by Sanity.
+
+### Add a portfolio project
+
+1. Run `npm run studio`, open the printed Studio URL, and select **Project**.
+2. Add the English and French titles, descriptions, and alt text.
+3. Select photo or video, upload a cover image, and optionally add gallery images, a preview video, and a poster.
+4. Choose the creative area, set the display order, and enable **Featured** when appropriate.
+5. Publish the document.
+
+When the CMS is configured, published projects replace local fallback cards. If the dataset is unavailable or empty, the supplied local portfolio remains visible.
+
+### Update the Instagram showcase
+
+1. Open the standalone Studio and select **Instagram showcase entry**.
+2. Upload an image, add natural English and French captions, and paste the post URL.
+3. Set the display order, enable **Published**, and publish.
+
+This is a manually maintained showcase. It does not scrape Instagram, embed a full feed, or require an Instagram token.
+
+### Site settings
+
+The **Site settings** schema supports biography, contact details, social links, localized WhatsApp messages, a default SEO image, and availability. Local contact constants live in `src/lib/media.ts`; connect those settings to the frontend when real owner-managed settings should override the verified defaults.
+
+## Content and media
+
+Typed fallback media is centralized in `src/lib/media.ts`. MongoDB/Sanity-backed fetching and graceful fallback behavior live in `src/lib/content.ts`.
+
+Source photographs remain unchanged in the repository-level `photos` folder. The script below creates resized, metadata-free delivery copies in `public/media`:
+
+```bash
+node scripts/prepare-media.mjs
+```
+
+The full source inventory and classification are in `docs/media-inventory.md`.
+
+Current limitations:
+
+- No video footage is bundled with the repository. Add real YouTube or Instagram content and thumbnails through **Admin → Videos**; the public site does not display empty demo cards.
+- No portrait or behind-the-scenes image was supplied. The About page uses original code-native aperture/viewfinder artwork rather than misclassifying an automotive image.
+- The supplied photographs represent automotive work only. Portrait, personalised-ad, and small-event photography should be added through Sanity as those assets become available.
+
+## SEO
+
+The site includes localized metadata, canonical URLs, language alternates, Open Graph and X cards, JSON-LD, `sitemap.xml`, `robots.txt`, a web manifest, and the AX7 favicon. `public/og.png` is the dedicated 1200 × 630 social card.
 
 ## Deploy to Vercel
 
-1. Push the repository to GitHub, GitLab or Bitbucket.
-2. Import it in Vercel. Set **Framework Preset** to **Next.js** and leave **Root Directory** at the repository root.
-3. Add the variables from `.env.example` in Vercel project settings.
-4. Deploy, test both locale trees, then assign `ax7mov.com` under **Settings → Domains**.
-5. At the domain registrar, add the DNS records Vercel displays. Set `NEXT_PUBLIC_SITE_URL=https://ax7mov.com`, redeploy, and verify the canonical links and sitemap.
+1. Push the repository to your Git provider.
+2. Import the project into Vercel.
+3. Set the Vercel **Root Directory** to `web` if deploying from the repository root.
+4. Add the MongoDB, Blob, admin-auth, and optional Sanity environment variables for Production, Preview, and Development. Use separate preview credentials when possible.
+5. Keep the standard Next.js build command (`npm run build`) and output settings.
+6. Deploy, then add `https://ax7mov.com` as a Sanity CORS origin.
+7. Connect `ax7mov.com` only after the Vercel project has been reviewed and approved.
 
-This repository is a standard Next.js App Router project and needs no custom output directory. If an earlier Vercel deployment used another preset or output directory, clear those overrides before redeploying.
-
-## SEO and accessibility
-
-Every public page has language-specific metadata, canonical links, hreflang alternates, Open Graph/X data, semantic headings, keyboard focus states and reduced-motion handling. `app/sitemap.ts` and `app/robots.ts` generate discovery files. The gallery lightbox supports Escape, arrow keys, focus restoration and swipe gestures.
+No deployment, domain purchase, external account connection, or paid service creation is performed by this repository.

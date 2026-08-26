@@ -1,39 +1,45 @@
 {
-  "name": "ax7mov-portfolio",
+  "name": "web",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=22.13.0"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --ignore-pattern .next",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "admin:hash": "node scripts/hash-admin-password.mjs",
+    "studio": "sanity dev"
   },
   "dependencies": {
+    "@sanity/client": "^8.2.0",
+    "@vercel/blob": "^2.8.0",
+    "bcryptjs": "^3.0.3",
     "gsap": "^3.15.0",
+    "jose": "^6.2.9",
     "lenis": "^1.3.26",
-    "next": "^16.2.6",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "mongodb": "^7.5.0",
+    "next": "16.3.1",
+    "next-intl": "^4.13.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sharp": "^0.35.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.4",
-    "@next/eslint-plugin-next": "16.2.6",
-    "@tailwindcss/postcss": "4.2.1",
-    "@types/node": "22.19.19",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "eslint": "9.39.4",
-    "eslint-plugin-jsx-a11y": "6.10.2",
-    "eslint-plugin-react": "7.37.5",
-    "eslint-plugin-react-hooks": "7.1.1",
-    "globals": "16.4.0",
-    "tailwindcss": "4.2.1",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.59.3"
-  },
-  "type": "module"
+    "@sanity/vision": "^6.10.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "prettier": "^3.9.6",
+    "sanity": "^6.10.1",
+    "styled-components": "^6.5.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
 }
