@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminProject, ProjectInput } from "@/lib/admin/project-schema";
 import { creativeAreas } from "@/lib/admin/project-schema";
 import { createPasswordProof } from "@/lib/admin-password";
+import { LoadingScreen } from "@/components/loading-screen";
 import { DefaultImagesManager } from "./default-images-manager";
 import { AboutManager } from "./about-manager";
 import { HeroManager } from "./hero-manager";
@@ -56,7 +57,9 @@ export function AdminApp({
   const [draft, setDraft] = useState<ProjectInput>(emptyProject);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(
+    initialAuthenticated && !initialPasswordChangeRequired,
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -76,25 +79,31 @@ export function AdminApp({
   }, []);
 
   const loadProjects = useCallback(async () => {
-    const response = await fetch("/api/admin/projects", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    if (response.status === 401) {
-      setAuthenticated(false);
-      return;
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/projects", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (response.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+      const data = (await response.json()) as {
+        projects?: AdminProject[];
+        error?: string;
+        code?: string;
+      };
+      if (data.code === "PASSWORD_CHANGE_REQUIRED") {
+        setPasswordChangeRequired(true);
+        return;
+      }
+      if (!response.ok)
+        throw new Error(data.error || "Unable to load projects.");
+      setProjects(data.projects || []);
+    } finally {
+      setBusy(false);
     }
-    const data = (await response.json()) as {
-      projects?: AdminProject[];
-      error?: string;
-      code?: string;
-    };
-    if (data.code === "PASSWORD_CHANGE_REQUIRED") {
-      setPasswordChangeRequired(true);
-      return;
-    }
-    if (!response.ok) throw new Error(data.error || "Unable to load projects.");
-    setProjects(data.projects || []);
   }, []);
 
   useEffect(() => {
@@ -320,6 +329,7 @@ export function AdminApp({
   if (!authenticated) {
     return (
       <main className={styles.shell}>
+        {busy && <LoadingScreen label="Signing in securely" />}
         <section className={styles.loginCard}>
           <div className={styles.brandRow}>
             <span className={styles.brandMark}>AX7</span>
@@ -371,6 +381,7 @@ export function AdminApp({
   if (passwordChangeRequired) {
     return (
       <main className={styles.shell}>
+        {busy && <LoadingScreen label="Updating account security" />}
         <header className={styles.topbar}>
           <div>
             <span className={styles.brandMark}>AX7</span>
@@ -397,6 +408,7 @@ export function AdminApp({
 
   return (
     <main className={styles.shell}>
+      {busy && <LoadingScreen label="Updating the content console" />}
       <header className={styles.topbar}>
         <div>
           <span className={styles.brandMark}>AX7</span>

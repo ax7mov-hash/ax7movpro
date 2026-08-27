@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminReview, ReviewInput } from "@/lib/admin/review-schema";
+import { LoadingScreen } from "@/components/loading-screen";
 import styles from "./admin.module.css";
 
 const emptyReview: ReviewInput = {
@@ -19,7 +20,7 @@ export function ReviewManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ReviewInput>(emptyReview);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -29,16 +30,22 @@ export function ReviewManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   );
 
   const loadReviews = useCallback(async () => {
-    const response = await fetch("/api/admin/reviews", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    const data = (await response.json()) as {
-      reviews?: AdminReview[];
-      error?: string;
-    };
-    if (!response.ok) throw new Error(data.error || "Unable to load reviews.");
-    setReviews(data.reviews || []);
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/reviews", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as {
+        reviews?: AdminReview[];
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(data.error || "Unable to load reviews.");
+      setReviews(data.reviews || []);
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -161,6 +168,7 @@ export function ReviewManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
 
   return (
     <section className={styles.dashboard}>
+      {busy && <LoadingScreen label="Loading client reviews" />}
       <aside className={styles.editorPanel}>
         <div className={styles.panelHeading}>
           <div>

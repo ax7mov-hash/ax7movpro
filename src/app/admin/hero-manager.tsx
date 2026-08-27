@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AdminHeroSettings, HeroInput } from "@/lib/admin/hero-schema";
 import { mediaItems } from "@/lib/media";
+import { LoadingScreen } from "@/components/loading-screen";
 import { ImageUploadEditor } from "./image-upload-editor";
 import styles from "./admin.module.css";
 
@@ -32,27 +33,32 @@ function toInput(settings: AdminHeroSettings): HeroInput {
 export function HeroManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   const [draft, setDraft] = useState<HeroInput>(fallbackHero);
   const [managed, setManaged] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const loadHero = useCallback(async () => {
-    const response = await fetch("/api/admin/hero", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    const data = (await response.json()) as {
-      hero?: AdminHeroSettings | null;
-      error?: string;
-    };
-    if (!response.ok)
-      throw new Error(data.error || "Unable to load the hero image.");
-    if (data.hero) {
-      setDraft(toInput(data.hero));
-      setManaged(true);
-    } else {
-      setDraft(fallbackHero);
-      setManaged(false);
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/hero", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as {
+        hero?: AdminHeroSettings | null;
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(data.error || "Unable to load the hero image.");
+      if (data.hero) {
+        setDraft(toInput(data.hero));
+        setManaged(true);
+      } else {
+        setDraft(fallbackHero);
+        setManaged(false);
+      }
+    } finally {
+      setBusy(false);
     }
   }, []);
 
@@ -195,6 +201,7 @@ export function HeroManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
 
   return (
     <section className={styles.heroEditorPage}>
+      {busy && <LoadingScreen label="Loading homepage hero" />}
       <div className={styles.heroEditorHeading}>
         <div>
           <p className={styles.eyebrow}>HOMEPAGE HERO</p>

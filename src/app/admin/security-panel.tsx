@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createPasswordProof } from "@/lib/admin-password";
+import { LoadingScreen } from "@/components/loading-screen";
 import styles from "./admin.module.css";
 
 export function SecurityPanel({
@@ -88,6 +89,7 @@ export function SecurityPanel({
 
   return (
     <section className={styles.securityPage}>
+      {busy && <LoadingScreen label="Updating account security" />}
       <div className={styles.securityCard}>
         <div className={styles.panelHeading}>
           <div>

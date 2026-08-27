@@ -5,6 +5,7 @@ import type {
   AdminDefaultImage,
   DefaultImageInput,
 } from "@/lib/admin/default-image-schema";
+import { LoadingScreen } from "@/components/loading-screen";
 import { ImageUploadEditor } from "./image-upload-editor";
 import styles from "./admin.module.css";
 
@@ -32,7 +33,7 @@ export function DefaultImagesManager({
   const [images, setImages] = useState<AdminDefaultImage[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DefaultImageInput | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -42,21 +43,26 @@ export function DefaultImagesManager({
   );
 
   const loadImages = useCallback(async () => {
-    const response = await fetch("/api/admin/default-images", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    const data = (await response.json()) as {
-      images?: AdminDefaultImage[];
-      error?: string;
-    };
-    if (!response.ok) {
-      throw new Error(data.error || "Unable to load the default images.");
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/default-images", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as {
+        images?: AdminDefaultImage[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to load the default images.");
+      }
+      const nextImages = data.images || [];
+      setImages(nextImages);
+      setSelectedId(nextImages[0]?.id || null);
+      setDraft(nextImages[0] ? toInput(nextImages[0]) : null);
+    } finally {
+      setBusy(false);
     }
-    const nextImages = data.images || [];
-    setImages(nextImages);
-    setSelectedId(nextImages[0]?.id || null);
-    setDraft(nextImages[0] ? toInput(nextImages[0]) : null);
   }, []);
 
   useEffect(() => {
@@ -220,6 +226,7 @@ export function DefaultImagesManager({
 
   return (
     <section className={styles.dashboard}>
+      {busy && <LoadingScreen label="Loading image library" />}
       <aside className={styles.editorPanel}>
         <div className={styles.panelHeading}>
           <div>

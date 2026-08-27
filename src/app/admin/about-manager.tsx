@@ -7,6 +7,7 @@ import type {
   AdminAboutSettings,
   LocalizedAboutText,
 } from "@/lib/admin/about-schema";
+import { LoadingScreen } from "@/components/loading-screen";
 import { ImageUploadEditor } from "./image-upload-editor";
 import styles from "./admin.module.css";
 
@@ -194,26 +195,31 @@ export function AboutManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   const [draft, setDraft] = useState<AboutInput | null>(null);
   const [fallback, setFallback] = useState<AboutInput | null>(null);
   const [managed, setManaged] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const loadAbout = useCallback(async () => {
-    const response = await fetch("/api/admin/about", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    const data = (await response.json()) as {
-      about?: AdminAboutSettings | null;
-      fallback?: AboutInput;
-      error?: string;
-    };
-    if (!response.ok || !data.fallback) {
-      throw new Error(data.error || "Unable to load the About editor.");
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/about", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as {
+        about?: AdminAboutSettings | null;
+        fallback?: AboutInput;
+        error?: string;
+      };
+      if (!response.ok || !data.fallback) {
+        throw new Error(data.error || "Unable to load the About editor.");
+      }
+      setFallback(data.fallback);
+      setDraft(data.about ? toInput(data.about) : data.fallback);
+      setManaged(Boolean(data.about));
+    } finally {
+      setBusy(false);
     }
-    setFallback(data.fallback);
-    setDraft(data.about ? toInput(data.about) : data.fallback);
-    setManaged(Boolean(data.about));
   }, []);
 
   useEffect(() => {
@@ -362,6 +368,7 @@ export function AboutManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   }
 
   if (!draft) {
+    if (busy) return <LoadingScreen label="Loading About content" />;
     return (
       <section className={styles.heroEditorPage}>
         <p className={error ? styles.error : styles.securityIntro}>
@@ -373,6 +380,7 @@ export function AboutManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
 
   return (
     <section className={styles.aboutEditorPage}>
+      {busy && <LoadingScreen label="Updating About content" />}
       <div className={styles.heroEditorHeading}>
         <div>
           <p className={styles.eyebrow}>ABOUT CONTENT</p>

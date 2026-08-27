@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminVideo, VideoInput } from "@/lib/admin/video-schema";
 import { getVideoProvider } from "@/lib/video-links";
+import { LoadingScreen } from "@/components/loading-screen";
 import { ImageUploadEditor } from "./image-upload-editor";
 import styles from "./admin.module.css";
 
@@ -52,7 +53,7 @@ export function VideoManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   const [videos, setVideos] = useState<AdminVideo[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<VideoInput>(emptyVideo);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -63,16 +64,21 @@ export function VideoManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
   const provider = getVideoProvider(draft.linkUrl);
 
   const loadVideos = useCallback(async () => {
-    const response = await fetch("/api/admin/videos", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    const data = (await response.json()) as {
-      videos?: AdminVideo[];
-      error?: string;
-    };
-    if (!response.ok) throw new Error(data.error || "Unable to load videos.");
-    setVideos(data.videos || []);
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/videos", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const data = (await response.json()) as {
+        videos?: AdminVideo[];
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || "Unable to load videos.");
+      setVideos(data.videos || []);
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -244,6 +250,7 @@ export function VideoManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
 
   return (
     <section className={styles.dashboard}>
+      {busy && <LoadingScreen label="Loading video library" />}
       <aside className={styles.editorPanel}>
         <div className={styles.panelHeading}>
           <div>

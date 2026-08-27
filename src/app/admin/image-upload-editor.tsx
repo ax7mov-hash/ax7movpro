@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { LoadingScreen } from "@/components/loading-screen";
 import styles from "./admin.module.css";
 
 type AspectPreset = "original" | "1:1" | "4:5" | "9:16" | "16:9";
@@ -311,6 +312,7 @@ export function ImageUploadEditor({
       setError("The source image must be 10 MB or smaller.");
       return;
     }
+    setProcessing(true);
     const url = URL.createObjectURL(nextFile);
     const image = new window.Image();
     image.onload = () => {
@@ -322,6 +324,7 @@ export function ImageUploadEditor({
         image.naturalWidth * image.naturalHeight > maximumImagePixels
       ) {
         URL.revokeObjectURL(url);
+        setProcessing(false);
         setError(
           `Use an image from ${minimumWidth} × ${minimumHeight}px up to 8,000px per side and 40 megapixels.`,
         );
@@ -334,10 +337,12 @@ export function ImageUploadEditor({
       setFile(nextFile);
       setSourceName(nextFile.name);
       resetEdits();
+      setProcessing(false);
       setOpen(true);
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
+      setProcessing(false);
       setError("The selected file could not be decoded as an image.");
     };
     image.src = url;
@@ -346,6 +351,7 @@ export function ImageUploadEditor({
   function editCurrentImage() {
     if (!currentImage?.src) return;
     setError("");
+    setProcessing(true);
     const image = new window.Image();
     image.crossOrigin = "anonymous";
     image.onload = () => {
@@ -356,6 +362,7 @@ export function ImageUploadEditor({
         image.naturalHeight > maximumImageDimension ||
         image.naturalWidth * image.naturalHeight > maximumImagePixels
       ) {
+        setProcessing(false);
         setError(
           `The current image must be from ${minimumWidth} × ${minimumHeight}px up to 8,000px per side and 40 megapixels.`,
         );
@@ -368,9 +375,11 @@ export function ImageUploadEditor({
       setFile(null);
       setSourceName(currentImage.name || "current-image");
       resetEdits();
+      setProcessing(false);
       setOpen(true);
     };
     image.onerror = () => {
+      setProcessing(false);
       setError(
         "The current image could not be opened for editing. Upload a replacement instead.",
       );
@@ -462,6 +471,7 @@ export function ImageUploadEditor({
 
   return (
     <div className={styles.uploadEditorField}>
+      {processing && <LoadingScreen label="Preparing your image" />}
       <label htmlFor={inputId}>{label}</label>
       <input
         id={inputId}
