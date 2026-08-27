@@ -1,9 +1,9 @@
 import { z } from "zod";
+import { passwordProofPattern } from "@/lib/admin-password";
 import {
   changeAdminPassword,
-  verifyAdminCredentials,
+  verifyCurrentAdminPassword,
 } from "@/lib/server/admin-auth";
-import { getAdminConfig } from "@/lib/server/env";
 import {
   guardAdminRequest,
   jsonNoStore,
@@ -13,28 +13,16 @@ import {
 
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(12).max(200),
-    newPassword: z
-      .string()
-      .min(12)
-      .max(128)
-      .regex(/[a-z]/, "Add a lowercase letter.")
-      .regex(/[A-Z]/, "Add an uppercase letter.")
-      .regex(/[0-9]/, "Add a number.")
-      .regex(/[^A-Za-z0-9]/, "Add a symbol."),
-    confirmPassword: z.string().min(12).max(128),
+    currentPasswordProof: z.string().regex(passwordProofPattern),
+    newPasswordProof: z.string().regex(passwordProofPattern),
   })
-  .refine((value) => value.newPassword === value.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "The new passwords do not match.",
-  })
-  .refine((value) => value.currentPassword !== value.newPassword, {
-    path: ["newPassword"],
+  .refine((value) => value.currentPasswordProof !== value.newPasswordProof, {
+    path: ["newPasswordProof"],
     message: "Choose a password you have not just used.",
   });
 
 export async function POST(request: Request) {
-  const guard = await guardAdminRequest(request, true);
+  const guard = await guardAdminRequest(request, true, true);
   if ("response" in guard) return guard.response;
   try {
     const input = passwordSchema.safeParse(
@@ -47,15 +35,14 @@ export async function POST(request: Request) {
         400,
       );
     }
-    const currentPasswordValid = await verifyAdminCredentials(
-      getAdminConfig().email,
-      input.data.currentPassword,
+    const currentPasswordValid = await verifyCurrentAdminPassword(
+      input.data.currentPasswordProof,
     );
     if (!currentPasswordValid) {
       return jsonNoStore({ error: "The current password is incorrect." }, 401);
     }
     const result = await changeAdminPassword(
-      input.data.newPassword,
+      input.data.newPasswordProof,
       guard.session.sessionId,
     );
     await writeAuditEvent(

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordProofPattern } from "@/lib/admin-password";
 import {
   createAdminSession,
   verifyAdminCredentials,
@@ -18,7 +19,7 @@ import {
 
 const loginSchema = z.object({
   email: z.string().trim().email().max(254),
-  password: z.string().min(12).max(200),
+  passwordProof: z.string().regex(passwordProofPattern),
 });
 
 export async function POST(request: Request) {
@@ -40,21 +41,26 @@ export async function POST(request: Request) {
         429,
       );
     }
-    const valid = await verifyAdminCredentials(
+    const adminUser = await verifyAdminCredentials(
       input.data.email,
-      input.data.password,
+      input.data.passwordProof,
     );
-    if (!valid) {
+    if (!adminUser) {
       await recordLoginFailure(input.data.email, ip);
       return jsonNoStore({ error: "Invalid email or password." }, 401);
     }
     await clearLoginFailures(input.data.email, ip);
     const session = await createAdminSession(
+      adminUser,
       hashIdentifier(ip),
       request.headers.get("user-agent") || "unknown",
     );
     await writeAuditEvent(request, "admin.login", session.sessionId);
-    return jsonNoStore({ ok: true });
+    return jsonNoStore({
+      ok: true,
+      email: session.email,
+      passwordChangeRequired: session.mustChangePassword,
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "PAYLOAD_TOO_LARGE") {
       return jsonNoStore({ error: "Request is too large." }, 413);

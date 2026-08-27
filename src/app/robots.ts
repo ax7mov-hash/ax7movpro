@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api/admin", "/studio"],
+        disallow: ["/api/admin", "/studio"],
       },
     ],
     sitemap: "https://ax7mov.com/sitemap.xml",

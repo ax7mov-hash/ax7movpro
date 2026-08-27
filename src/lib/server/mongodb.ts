@@ -36,7 +36,8 @@ async function ensureIndexes(db: Db) {
     db.collection("projects").createIndex({ slug: 1 }, { unique: true }),
     db.collection("projects").createIndex({ published: 1, displayOrder: 1 }),
     db.collection("reviews").createIndex({ published: 1, displayOrder: 1 }),
-    db.collection("adminCredentials").createIndex({ key: 1 }, { unique: true }),
+    db.collection("adminUsers").createIndex({ key: 1 }, { unique: true }),
+    db.collection("adminUsers").createIndex({ email: 1 }, { unique: true }),
     db.collection("siteSettings").createIndex({ key: 1 }, { unique: true }),
     db
       .collection("mediaOverrides")

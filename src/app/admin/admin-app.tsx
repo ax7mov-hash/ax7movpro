@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminProject, ProjectInput } from "@/lib/admin/project-schema";
 import { creativeAreas } from "@/lib/admin/project-schema";
+import { createPasswordProof } from "@/lib/admin-password";
 import { DefaultImagesManager } from "./default-images-manager";
 import { AboutManager } from "./about-manager";
 import { HeroManager } from "./hero-manager";
@@ -32,11 +33,19 @@ const emptyProject: ProjectInput = {
 export function AdminApp({
   initialAuthenticated,
   initialConfigured,
+  initialAdminEmail,
+  initialPasswordChangeRequired,
 }: {
   initialAuthenticated: boolean;
   initialConfigured: boolean;
+  initialAdminEmail: string;
+  initialPasswordChangeRequired: boolean;
 }) {
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
+  const [adminEmail, setAdminEmail] = useState(initialAdminEmail);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(
+    initialPasswordChangeRequired,
+  );
   const [activeSection, setActiveSection] = useState<
     "projects" | "images" | "hero" | "about" | "videos" | "reviews" | "security"
   >("projects");
@@ -78,7 +87,12 @@ export function AdminApp({
     const data = (await response.json()) as {
       projects?: AdminProject[];
       error?: string;
+      code?: string;
     };
+    if (data.code === "PASSWORD_CHANGE_REQUIRED") {
+      setPasswordChangeRequired(true);
+      return;
+    }
     if (!response.ok) throw new Error(data.error || "Unable to load projects.");
     setProjects(data.projects || []);
   }, []);
@@ -91,14 +105,14 @@ export function AdminApp({
   }, [getCsrf]);
 
   useEffect(() => {
-    if (!authenticated) return;
+    if (!authenticated || passwordChangeRequired) return;
     const timer = window.setTimeout(() => {
       loadProjects().catch((reason: unknown) =>
         setError(reason instanceof Error ? reason.message : "Unable to load."),
       );
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [authenticated, loadProjects]);
+  }, [authenticated, loadProjects, passwordChangeRequired]);
 
   function clearNotices() {
     setError("");
@@ -111,6 +125,7 @@ export function AdminApp({
     setBusy(true);
     try {
       const token = csrfToken || (await getCsrf());
+      const passwordProof = await createPasswordProof(email, password);
       const response = await fetch("/api/admin/login", {
         method: "POST",
         credentials: "same-origin",
@@ -118,11 +133,17 @@ export function AdminApp({
           "Content-Type": "application/json",
           "X-CSRF-Token": token,
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, passwordProof }),
       });
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as {
+        email?: string;
+        error?: string;
+        passwordChangeRequired?: boolean;
+      };
       if (!response.ok) throw new Error(data.error || "Unable to sign in.");
       setPassword("");
+      setAdminEmail(data.email || email.trim().toLowerCase());
+      setPasswordChangeRequired(Boolean(data.passwordChangeRequired));
       setAuthenticated(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to sign in.");
@@ -142,6 +163,8 @@ export function AdminApp({
         headers: { "X-CSRF-Token": token },
       });
       setAuthenticated(false);
+      setAdminEmail("");
+      setPasswordChangeRequired(false);
       setProjects([]);
       setSelectedId(null);
       setDraft(emptyProject);
@@ -341,6 +364,33 @@ export function AdminApp({
             </button>
           </form>
         </section>
+      </main>
+    );
+  }
+
+  if (passwordChangeRequired) {
+    return (
+      <main className={styles.shell}>
+        <header className={styles.topbar}>
+          <div>
+            <span className={styles.brandMark}>AX7</span>
+            <div>
+              <strong>Account setup</strong>
+              <small>Temporary password detected</small>
+            </div>
+          </div>
+          <div className={styles.topActions}>
+            <button type="button" onClick={logout} disabled={busy}>
+              Sign out
+            </button>
+          </div>
+        </header>
+        <SecurityPanel
+          adminEmail={adminEmail}
+          forced
+          getCsrf={getCsrf}
+          onPasswordChanged={() => setPasswordChangeRequired(false)}
+        />
       </main>
     );
   }
@@ -713,7 +763,9 @@ export function AdminApp({
       {activeSection === "about" && <AboutManager getCsrf={getCsrf} />}
       {activeSection === "videos" && <VideoManager getCsrf={getCsrf} />}
       {activeSection === "reviews" && <ReviewManager getCsrf={getCsrf} />}
-      {activeSection === "security" && <SecurityPanel getCsrf={getCsrf} />}
+      {activeSection === "security" && (
+        <SecurityPanel adminEmail={adminEmail} getCsrf={getCsrf} />
+      )}
     </main>
   );
 }

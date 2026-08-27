@@ -35,7 +35,7 @@ npm run start
 
 ## Secure admin and MongoDB Atlas
 
-The `/admin` page manages portfolio projects, every bundled portfolio/showcase image, the homepage hero, external video cards, and client reviews stored in MongoDB Atlas. It uploads public images and video thumbnails to Vercel Blob and lets the signed-in administrator change the account password. Each default-image replacement can be restored to its bundled fallback. Published reviews appear on the localized homepage. The built-in `/media/midnight-velocity.png` hero remains the automatic fallback whenever no managed hero is saved or Atlas is unavailable. MongoDB content is the first public-site source; if Atlas is unconfigured, unavailable, or empty, the existing Sanity/local content remains visible.
+The `/ax7-vault-9k4m2` page manages portfolio projects, every bundled portfolio/showcase image, the homepage hero, external video cards, and client reviews stored in MongoDB Atlas. The old `/admin` route does not exist. The uncommon path reduces casual discovery but is not treated as an authorization control; every protected API still verifies the database-backed session. The console uploads public images and video thumbnails to Vercel Blob and lets the signed-in administrator change the account password. Each default-image replacement can be restored to its bundled fallback. Published reviews appear on the localized homepage. The built-in `/media/midnight-velocity.png` hero remains the automatic fallback whenever no managed hero is saved or Atlas is unavailable. MongoDB content is the first public-site source; if Atlas is unconfigured, unavailable, or empty, the existing Sanity/local content remains visible.
 
 Admin image uploads accept JPG, PNG, WebP, and AVIF files up to 4 MB. Images are decoded server-side and limited to 40 megapixels and 8,000 px on either side. Portfolio/default images must be at least 640 × 400 px; hero images must be at least 1,200 × 600 px.
 
@@ -49,17 +49,14 @@ The **Videos** section creates homepage and gallery cards from validated YouTube
    connection, run `vercel env pull` locally and provide both
    `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`. A legacy
    `BLOB_READ_WRITE_TOKEN` remains supported as an alternative.
-4. Generate the admin password hash and paste the escaped output into `ADMIN_PASSWORD_HASH`:
+4. Set `ADMIN_EMAIL` and the bootstrap-only `ADMIN_TEMP_PASSWORD`. The provided temporary value is `Admin@123456`. On the first successful login, the app creates the primary admin user in MongoDB and requires an immediate password change before any content API can be used.
+5. Generate the JWT secret with `openssl rand -base64 64`, set the exact `SITE_ORIGIN`, restart the app, and visit `/ax7-vault-9k4m2`.
 
-```bash
-npm run admin:hash -- "A-unique-long-password"
-```
+Before login or password change, the browser derives a 256-bit password proof with PBKDF2-SHA-256 (600,000 iterations) and sends only that proof. The server protects the proof again with bcrypt cost 12 before storing it in the `adminUsers` collection. The proof is still a password-equivalent credential, so production must use HTTPS.
 
-5. Generate the JWT secret with `openssl rand -base64 64`, set the exact `SITE_ORIGIN`, restart the app, and visit `/admin`.
+Admin sessions are short-lived signed JWTs in HttpOnly, Secure, SameSite=Strict cookies and are backed by revocable MongoDB session records. Mutations also require same-origin and CSRF checks. Login attempts are rate-limited, uploads are size/type/signature checked, and admin actions are recorded in a 90-day audit log. Never commit `.env.local`, Atlas credentials, Blob or OIDC credentials, temporary passwords, stored hashes, or JWT secrets.
 
-Admin sessions are short-lived signed JWTs in HttpOnly, Secure, SameSite=Strict cookies and are backed by revocable MongoDB session records. Mutations also require same-origin and CSRF checks. Login attempts are rate-limited, uploads are size/type/signature checked, and admin actions are recorded in a 90-day audit log. Never commit `.env.local`, Atlas credentials, Blob or OIDC credentials, hashes, or JWT secrets.
-
-The environment password hash is the initial credential. After the first password change in **Admin → Security**, the replacement bcrypt hash is stored in MongoDB and takes precedence. Changing it revokes every other active admin session while keeping the current session open. For account recovery, remove the `primary` record from the `adminCredentials` collection; the configured environment hash will become active again.
+MongoDB stores the primary admin's email, role, bcrypt-protected password proof, active status, forced-change state, and account timestamps. Changing the password revokes every other active admin session while keeping the current session open. For account recovery, remove the `primary` record from the `adminUsers` collection; the next successful login with `ADMIN_EMAIL` and `ADMIN_TEMP_PASSWORD` recreates it and forces another password change.
 
 ## Sanity setup
 

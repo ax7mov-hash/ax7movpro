@@ -9,5 +9,7 @@ export async function GET() {
   return jsonNoStore({
     authenticated: Boolean(session),
     configured: isAdminConfigured(),
+    email: session?.email,
+    passwordChangeRequired: session?.mustChangePassword ?? false,
   });
 }

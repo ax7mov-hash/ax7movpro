@@ -1,9 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { createPasswordProof } from "@/lib/admin-password";
 import styles from "./admin.module.css";
 
-export function SecurityPanel({ getCsrf }: { getCsrf: () => Promise<string> }) {
+export function SecurityPanel({
+  adminEmail,
+  forced = false,
+  getCsrf,
+  onPasswordChanged,
+}: {
+  adminEmail: string;
+  forced?: boolean;
+  getCsrf: () => Promise<string>;
+  onPasswordChanged?: () => void;
+}) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,9 +30,29 @@ export function SecurityPanel({ getCsrf }: { getCsrf: () => Promise<string> }) {
       setError("The new passwords do not match.");
       return;
     }
+    if (
+      newPassword.length < 12 ||
+      !/[a-z]/.test(newPassword) ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[^A-Za-z0-9]/.test(newPassword)
+    ) {
+      setError(
+        "Use at least 12 characters with uppercase, lowercase, a number, and a symbol.",
+      );
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setError("Choose a password you have not just used.");
+      return;
+    }
     setBusy(true);
     try {
       const token = await getCsrf();
+      const [currentPasswordProof, newPasswordProof] = await Promise.all([
+        createPasswordProof(adminEmail, currentPassword),
+        createPasswordProof(adminEmail, newPassword),
+      ]);
       const response = await fetch("/api/admin/password", {
         method: "POST",
         credentials: "same-origin",
@@ -29,7 +60,7 @@ export function SecurityPanel({ getCsrf }: { getCsrf: () => Promise<string> }) {
           "Content-Type": "application/json",
           "X-CSRF-Token": token,
         },
-        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+        body: JSON.stringify({ currentPasswordProof, newPasswordProof }),
       });
       const data = (await response.json()) as {
         error?: string;
@@ -45,6 +76,7 @@ export function SecurityPanel({ getCsrf }: { getCsrf: () => Promise<string> }) {
           data.revokedSessions === 1 ? " was" : "s were"
         } signed out.`,
       );
+      onPasswordChanged?.();
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Unable to change password.",
@@ -60,12 +92,13 @@ export function SecurityPanel({ getCsrf }: { getCsrf: () => Promise<string> }) {
         <div className={styles.panelHeading}>
           <div>
             <p className={styles.eyebrow}>ACCOUNT SECURITY</p>
-            <h1>Change password</h1>
+            <h1>{forced ? "Replace temporary password" : "Change password"}</h1>
           </div>
         </div>
         <p className={styles.securityIntro}>
-          Confirm the current password, then choose a unique replacement. Other
-          admin sessions will be signed out automatically.
+          {forced
+            ? "Before using the console, replace the temporary password with a unique password that only you know."
+            : "Confirm the current password, then choose a unique replacement. Other admin sessions will be signed out automatically."}
         </p>
         {(error || message) && (
           <div className={error ? styles.error : styles.success} role="status">

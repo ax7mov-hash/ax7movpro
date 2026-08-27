@@ -190,7 +190,11 @@ export async function writeAuditEvent(
   });
 }
 
-export async function guardAdminRequest(request: Request, mutation = false) {
+export async function guardAdminRequest(
+  request: Request,
+  mutation = false,
+  allowPasswordChangeRequired = false,
+) {
   if (mutation && !(await validateMutationRequest(request))) {
     return { response: jsonNoStore({ error: "Invalid request." }, 403) };
   }
@@ -210,6 +214,17 @@ export async function guardAdminRequest(request: Request, mutation = false) {
   ) {
     return {
       response: jsonNoStore({ error: "Authentication required." }, 401),
+    };
+  }
+  if (session.mustChangePassword && !allowPasswordChangeRequired) {
+    return {
+      response: jsonNoStore(
+        {
+          error: "Change the temporary password before continuing.",
+          code: "PASSWORD_CHANGE_REQUIRED",
+        },
+        403,
+      ),
     };
   }
   return { session };

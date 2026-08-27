@@ -23,7 +23,7 @@ export function isAdminConfigured() {
   return Boolean(
     isMongoConfigured() &&
     process.env.ADMIN_EMAIL &&
-    process.env.ADMIN_PASSWORD_HASH &&
+    process.env.ADMIN_TEMP_PASSWORD &&
     process.env.JWT_SECRET &&
     process.env.SITE_ORIGIN,
   );
@@ -44,13 +44,9 @@ export function getAdminConfig() {
   if (Buffer.byteLength(jwtSecret, "utf8") < 64) {
     throw new Error("JWT_SECRET must contain at least 64 bytes.");
   }
-  const passwordHash = required("ADMIN_PASSWORD_HASH");
-  if (!/^\$2[aby]\$1[2-9]\$/.test(passwordHash)) {
-    throw new Error("ADMIN_PASSWORD_HASH must be a bcrypt hash with cost 12+.");
-  }
   return {
     email: required("ADMIN_EMAIL").toLowerCase(),
-    passwordHash,
+    temporaryPassword: required("ADMIN_TEMP_PASSWORD"),
     jwtSecret,
     sessionHours: Math.min(
       Math.max(Number(process.env.ADMIN_SESSION_HOURS || 8), 1),

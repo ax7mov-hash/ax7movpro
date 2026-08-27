@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "admin:hash": "node scripts/hash-admin-password.mjs",
     "studio": "sanity dev"
   },
   "dependencies": {
