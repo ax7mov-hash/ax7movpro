@@ -352,7 +352,7 @@ export function VideoManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
           </div>
           <ImageUploadEditor
             label="Video thumbnail"
-            help="Maximum 4 MB · 640 × 400px minimum · crop to 9:16 for reels or 16:9 for widescreen"
+            help="Maximum 10 MB · 640 × 400px minimum · crop to 9:16 for reels or 16:9 for widescreen"
             minimumWidth={640}
             minimumHeight={400}
             defaultAspect={draft.format === "reel" ? "9:16" : "16:9"}

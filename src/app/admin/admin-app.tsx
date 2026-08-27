@@ -637,7 +637,7 @@ export function AdminApp({
               </div>
               <ImageUploadEditor
                 label="Portfolio image"
-                help="JPG, PNG, WebP, or AVIF · maximum 4 MB · 640 × 400px minimum"
+                help="JPG, PNG, WebP, or AVIF · maximum 10 MB · 640 × 400px minimum"
                 minimumWidth={640}
                 minimumHeight={400}
                 currentImage={

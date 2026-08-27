@@ -6,7 +6,7 @@ import styles from "./admin.module.css";
 type AspectPreset = "original" | "1:1" | "4:5" | "9:16" | "16:9";
 type Rotation = 0 | 90 | 180 | 270;
 
-const maximumUploadBytes = 4 * 1024 * 1024;
+const maximumUploadBytes = 10 * 1024 * 1024;
 const maximumImagePixels = 40_000_000;
 const maximumImageDimension = 8_000;
 const allowedTypes = new Set([
@@ -308,7 +308,7 @@ export function ImageUploadEditor({
       return;
     }
     if (nextFile.size > maximumUploadBytes || nextFile.size < 64) {
-      setError("The source image must be 4 MB or smaller.");
+      setError("The source image must be 10 MB or smaller.");
       return;
     }
     const url = URL.createObjectURL(nextFile);
@@ -443,10 +443,10 @@ export function ImageUploadEditor({
         reason.message === "OUTPUT_TOO_LARGE"
       ) {
         setError(
-          "This resolution cannot be compressed below 4 MB. Choose a smaller width or height.",
+          "This resolution cannot be compressed below 10 MB. Choose a smaller width or height.",
         );
       } else {
-        setError("Unable to export this edit within the 4 MB limit.");
+        setError("Unable to export this edit within the 10 MB limit.");
       }
     }
   }

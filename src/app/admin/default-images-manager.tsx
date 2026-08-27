@@ -257,7 +257,7 @@ export function DefaultImagesManager({
             </div>
             <ImageUploadEditor
               label="Replacement image"
-              help="Maximum 4 MB · 640 × 400px minimum · 8,000px maximum side · 40 MP maximum"
+              help="Maximum 10 MB · 640 × 400px minimum · 8,000px maximum side · 40 MP maximum"
               minimumWidth={640}
               minimumHeight={400}
               currentImage={{ src: draft.src, name: selected.id }}

@@ -95,7 +95,7 @@ function AboutImageCard({
       )}
       <ImageUploadEditor
         label={image.src ? "Replace or edit image" : "Upload image"}
-        help="JPG, PNG, WebP, or AVIF · maximum 4 MB · 640 × 400px minimum"
+        help="JPG, PNG, WebP, or AVIF · maximum 10 MB · 640 × 400px minimum"
         minimumWidth={640}
         minimumHeight={400}
         defaultAspect={title.includes("Portrait") ? "4:5" : "16:9"}

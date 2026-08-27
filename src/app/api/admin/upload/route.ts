@@ -13,7 +13,7 @@ import {
 } from "@/lib/server/admin-security";
 import { isBlobConfigured } from "@/lib/server/env";
 
-const maximumUploadBytes = 4 * 1024 * 1024;
+const maximumUploadBytes = 10 * 1024 * 1024;
 const maximumImagePixels = 40_000_000;
 const maximumImageDimension = 8_000;
 const allowedTypes = new Map([
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   try {
     const declared = Number(request.headers.get("content-length") || 0);
     if (declared > maximumUploadBytes + 200_000) {
-      return jsonNoStore({ error: "Image must be 4 MB or smaller." }, 413);
+      return jsonNoStore({ error: "Image must be 10 MB or smaller." }, 413);
     }
     const formData = await request.formData();
     const file = formData.get("file");
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const extension = allowedTypes.get(file.type);
     if (!extension || file.size > maximumUploadBytes || file.size < 64) {
       return jsonNoStore(
-        { error: "Use a JPG, PNG, WebP, or AVIF image up to 4 MB." },
+        { error: "Use a JPG, PNG, WebP, or AVIF image up to 10 MB." },
         400,
       );
     }

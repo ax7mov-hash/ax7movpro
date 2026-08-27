@@ -236,7 +236,7 @@ export function HeroManager({ getCsrf }: { getCsrf: () => Promise<string> }) {
         <form onSubmit={saveHero} className={styles.editorForm}>
           <ImageUploadEditor
             label="New hero image"
-            help="Wide JPG, PNG, WebP, or AVIF · maximum 4 MB · 1,200 × 600px minimum"
+            help="Wide JPG, PNG, WebP, or AVIF · maximum 10 MB · 1,200 × 600px minimum"
             minimumWidth={1200}
             minimumHeight={600}
             defaultAspect="16:9"
