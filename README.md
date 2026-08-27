@@ -1,133 +1,146 @@
-# AX7MOV portfolio
+# AX7MOV
 
-A bilingual, cinematic photography and filmmaking portfolio for Athulkrishna / AX7MOV. The site is built with Next.js App Router, TypeScript, Tailwind CSS, next-intl, GSAP, Lenis, and Sanity, and is ready for Vercel.
+AX7MOV is a multilingual portfolio and film showcase built with Next.js. Public content is served in English and French, while projects, homepage media, and videos can be managed from a protected admin console.
+
+## Stack
+
+- Next.js 16 with the App Router
+- React 19 and TypeScript
+- MongoDB for admin accounts, sessions, projects, and managed media
+- Vercel Blob for uploaded images and videos
+- Tailwind CSS 4
 
 ## Routes
 
-Public pages are available in English and French:
-
-- `/en` and `/fr` — home
-- `/en/about` and `/fr/about` — biography, approach, and process
-- `/en/gallery` and `/fr/gallery` — combined photo/video gallery with accessible lightbox
-- `/en/contact` and `/fr/contact` — direct WhatsApp, email, phone, and Instagram actions
-- `/studio` — setup guidance for the linked standalone Sanity Studio
-
-The site redirects `/` to `/en`. Language switching preserves the current page.
+| Route                        | Purpose                 |
+| ---------------------------- | ----------------------- |
+| `/`                          | Redirects to `/en`      |
+| `/en`, `/fr`                 | Localized homepage      |
+| `/en/about`, `/fr/about`     | About page              |
+| `/en/gallery`, `/fr/gallery` | Project gallery         |
+| `/en/contact`, `/fr/contact` | Contact page            |
+| `/ax7-vault-9k4m2`           | Protected admin console |
 
 ## Local development
 
-Requires a current LTS-compatible Node.js runtime and npm.
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create a local environment file:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Configure MongoDB, Vercel Blob, and the admin secrets described below.
+
+4. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+Open [http://localhost:3000](http://localhost:3000) for the public site or [http://localhost:3000/ax7-vault-9k4m2](http://localhost:3000/ax7-vault-9k4m2) for the admin console.
+
+## Environment variables
+
+| Variable                | Purpose                                                                   |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `MONGODB_URI`           | MongoDB connection string                                                 |
+| `MONGODB_DB_NAME`       | Database name; defaults to `ax7mov`                                       |
+| `ADMIN_EMAIL`           | Email address for the primary admin                                       |
+| `ADMIN_TEMP_PASSWORD`   | Plain-text bootstrap and recovery password; the default is `Admin@123456` |
+| `JWT_SECRET`            | Long random secret used to sign admin session tokens                      |
+| `ADMIN_SESSION_HOURS`   | Session lifetime; defaults to `8` hours                                   |
+| `SITE_ORIGIN`           | Canonical site origin used for security checks and metadata               |
+| `VERCEL_OIDC_TOKEN`     | Recommended Vercel authentication for Blob uploads                        |
+| `BLOB_STORE_ID`         | Optional explicit Vercel Blob store identifier                            |
+| `BLOB_READ_WRITE_TOKEN` | Optional Blob token when OIDC is not used                                 |
+
+Do not commit `.env.local`. In production, replace the example `JWT_SECRET`, keep the bootstrap password private, and complete the required first-login password change immediately.
+
+## Admin authentication
+
+The admin account is stored in MongoDB rather than in environment variables. The environment only contains the temporary bootstrap password used to create or recover the primary account.
+
+The sign-in flow works as follows:
+
+1. The browser converts the entered password into a PBKDF2-SHA-256 proof using 600,000 iterations before sending it over HTTPS.
+2. On the first successful sign-in, the server validates the proof of `ADMIN_TEMP_PASSWORD`, creates the primary admin in the `adminUsers` collection, and starts a restricted session.
+3. The admin must set a new password before any protected content API can be used.
+4. The server stores the new credential as a bcrypt hash with cost 12. The plain-text password is never stored in MongoDB.
+5. Normal sign-ins create a signed JWT backed by a MongoDB session. Sessions are protected with CSRF validation, expiry, IP and user-agent checks, rate limiting, and audit logging.
+6. Changing the password revokes other active sessions.
+
+Client-side password derivation does not replace HTTPS; production deployments must still use TLS.
+
+### Account recovery
+
+If the primary admin password is lost, delete that admin record from the `adminUsers` collection. The next valid sign-in with `ADMIN_EMAIL` and `ADMIN_TEMP_PASSWORD` recreates the primary account and requires another password change.
+
+The uncommon admin URL reduces casual discovery, but the application relies on authentication and server-side authorization for security.
+
+## Admin features
+
+The admin console manages:
+
+- Portfolio projects, descriptions, credits, status, year, and cover images
+- Homepage hero images
+- Homepage Instagram-style showcase images and videos
+- Video URLs and uploaded video files
+- Account password changes and session security
+
+### Image uploads
+
+- Accepted formats: JPEG, PNG, WebP, and AVIF
+- Maximum file size: **10 MB**
+- Maximum source dimensions: 40 megapixels and 8,000 pixels on either side
+- Minimum portfolio image size: 640 × 400 pixels
+- Minimum homepage hero size: 1,200 × 600 pixels
+
+The built-in image editor supports crop, rotate, flip, zoom, and quality adjustment. Upload validation is enforced on both the client and server.
+
+### Loading experience
+
+A branded full-screen loading screen appears during route transitions and initial page loads. The admin console also shows it while fetching, saving, deleting, uploading, or processing media. Loading status is announced accessibly and respects reduced-motion preferences.
+
+## Content sources
+
+Public pages use published MongoDB records when MongoDB is configured and available. Typed local content keeps the portfolio available when the database is unavailable or has no managed content.
+
+## Useful commands
+
+| Command                | Purpose                      |
+| ---------------------- | ---------------------------- |
+| `npm run dev`          | Start the development server |
+| `npm run build`        | Create a production build    |
+| `npm run start`        | Start the production server  |
+| `npm run lint`         | Run ESLint                   |
+| `npm run typecheck`    | Run TypeScript checks        |
+| `npm run format`       | Format supported files       |
+| `npm run format:check` | Check formatting             |
+
+## Deployment
+
+For a Vercel deployment:
+
+1. Add every required environment variable to the project.
+2. Allow the deployment to access MongoDB.
+3. Connect a Vercel Blob store and configure OIDC or a Blob token.
+4. Set `SITE_ORIGIN` to the production HTTPS origin.
+5. Deploy, sign in with the temporary password, and immediately choose the permanent admin password.
+
+Before release, run:
 
 ```bash
-npm install
-npm run dev
-```
-
-Open the local URL printed by Next.js. Other useful commands:
-
-```bash
-npm run format
-npm run lint
 npm run typecheck
+npm run lint
 npm run build
-npm run start
 ```
 
-## Secure admin and MongoDB Atlas
+## SEO and accessibility
 
-The `/ax7-vault-9k4m2` page manages portfolio projects, every bundled portfolio/showcase image, the homepage hero, external video cards, and client reviews stored in MongoDB Atlas. The old `/admin` route does not exist. The uncommon path reduces casual discovery but is not treated as an authorization control; every protected API still verifies the database-backed session. The console uploads public images and video thumbnails to Vercel Blob and lets the signed-in administrator change the account password. Each default-image replacement can be restored to its bundled fallback. Published reviews appear on the localized homepage. The built-in `/media/midnight-velocity.png` hero remains the automatic fallback whenever no managed hero is saved or Atlas is unavailable. MongoDB content is the first public-site source; if Atlas is unconfigured, unavailable, or empty, the existing Sanity/local content remains visible.
-
-Admin image uploads accept JPG, PNG, WebP, and AVIF files up to 10 MB. Images are decoded server-side and limited to 40 megapixels and 8,000 px on either side. Portfolio/default images must be at least 640 × 400 px; hero images must be at least 1,200 × 600 px.
-
-Selecting a new image in **Projects**, **Images**, or **Hero**, or choosing **Edit current image**, opens the shared editor. It supports original, square, portrait, and wide crops; crop-aware output width and height; image-based, 1280px, and 1920px resolution presets; 90° rotation; zoom and crop positioning; brightness, contrast, and saturation adjustments; reset; and an unedited-upload option. Edited files are exported at the selected resolution as compressed WebP images before the same server-side limits are applied. Project and bundled-photo editors also save bilingual card names and descriptions with the image.
-
-The **Videos** section creates homepage and gallery cards from validated YouTube or Instagram links and an uploaded thumbnail. Administrators can choose 9:16 reel or 16:9 widescreen presentation, ordering and placement, published state, autoplay, and loop. YouTube cards use an inline privacy-enhanced player with native play, pause, volume, timeline, and fullscreen controls; muted autoplay honors reduced-motion preferences and can loop. Instagram cards retain the uploaded thumbnail and open the original Instagram link because Instagram controls embed playback.
-
-1. Copy `.env.example` to `.env.local`.
-2. Create an Atlas database user with read/write access only to the configured database. Keep Atlas TLS enabled and restrict network access to the deployment environment.
-3. Connect a public Vercel Blob store to the project. For the recommended OIDC
-   connection, run `vercel env pull` locally and provide both
-   `VERCEL_OIDC_TOKEN` and `BLOB_STORE_ID`. A legacy
-   `BLOB_READ_WRITE_TOKEN` remains supported as an alternative.
-4. Set `ADMIN_EMAIL` and the bootstrap-only `ADMIN_TEMP_PASSWORD`. The provided temporary value is `Admin@123456`. On the first successful login, the app creates the primary admin user in MongoDB and requires an immediate password change before any content API can be used.
-5. Generate the JWT secret with `openssl rand -base64 64`, set the exact `SITE_ORIGIN`, restart the app, and visit `/ax7-vault-9k4m2`.
-
-Before login or password change, the browser derives a 256-bit password proof with PBKDF2-SHA-256 (600,000 iterations) and sends only that proof. The server protects the proof again with bcrypt cost 12 before storing it in the `adminUsers` collection. The proof is still a password-equivalent credential, so production must use HTTPS.
-
-Admin sessions are short-lived signed JWTs in HttpOnly, Secure, SameSite=Strict cookies and are backed by revocable MongoDB session records. Mutations also require same-origin and CSRF checks. Login attempts are rate-limited, uploads are size/type/signature checked, and admin actions are recorded in a 90-day audit log. Never commit `.env.local`, Atlas credentials, Blob or OIDC credentials, temporary passwords, stored hashes, or JWT secrets.
-
-MongoDB stores the primary admin's email, role, bcrypt-protected password proof, active status, forced-change state, and account timestamps. Changing the password revokes every other active admin session while keeping the current session open. For account recovery, remove the `primary` record from the `adminUsers` collection; the next successful login with `ADMIN_EMAIL` and `ADMIN_TEMP_PASSWORD` recreates it and forces another password change.
-
-## Sanity setup
-
-The public site always has typed local fallback content, so it works without credentials. To connect a real Sanity dataset:
-
-1. Create a Sanity project at [sanity.io/manage](https://www.sanity.io/manage).
-2. Create a `production` dataset (or choose another dataset name).
-3. Copy `.env.example` to `.env.local`.
-4. Add the project ID and dataset:
-
-```env
-NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id
-NEXT_PUBLIC_SANITY_DATASET=production
-```
-
-`SANITY_API_READ_TOKEN` is reserved for a future private dataset workflow. It is not needed for a public read-only dataset and is never exposed in browser code.
-
-Restart the development server, then run `npm run studio` and open the local URL printed by Sanity (normally port 3333). The `/studio` route provides the same setup reminder without bundling authoring tools into the public Vercel runtime. Add the Studio URL, `http://localhost:3000`, and the production domain as CORS origins in Sanity project settings if prompted. Authentication and write access remain managed by Sanity.
-
-### Add a portfolio project
-
-1. Run `npm run studio`, open the printed Studio URL, and select **Project**.
-2. Add the English and French titles, descriptions, and alt text.
-3. Select photo or video, upload a cover image, and optionally add gallery images, a preview video, and a poster.
-4. Choose the creative area, set the display order, and enable **Featured** when appropriate.
-5. Publish the document.
-
-When the CMS is configured, published projects replace local fallback cards. If the dataset is unavailable or empty, the supplied local portfolio remains visible.
-
-### Update the Instagram showcase
-
-1. Open the standalone Studio and select **Instagram showcase entry**.
-2. Upload an image, add natural English and French captions, and paste the post URL.
-3. Set the display order, enable **Published**, and publish.
-
-This is a manually maintained showcase. It does not scrape Instagram, embed a full feed, or require an Instagram token.
-
-### Site settings
-
-The **Site settings** schema supports biography, contact details, social links, localized WhatsApp messages, a default SEO image, and availability. Local contact constants live in `src/lib/media.ts`; connect those settings to the frontend when real owner-managed settings should override the verified defaults.
-
-## Content and media
-
-Typed fallback media is centralized in `src/lib/media.ts`. MongoDB/Sanity-backed fetching and graceful fallback behavior live in `src/lib/content.ts`.
-
-Source photographs remain unchanged in the repository-level `photos` folder. The script below creates resized, metadata-free delivery copies in `public/media`:
-
-```bash
-node scripts/prepare-media.mjs
-```
-
-The full source inventory and classification are in `docs/media-inventory.md`.
-
-Current limitations:
-
-- No video footage is bundled with the repository. Add real YouTube or Instagram content and thumbnails through **Admin → Videos**; the public site does not display empty demo cards.
-- No portrait or behind-the-scenes image was supplied. The About page uses original code-native aperture/viewfinder artwork rather than misclassifying an automotive image.
-- The supplied photographs represent automotive work only. Portrait, personalised-ad, and small-event photography should be added through Sanity as those assets become available.
-
-## SEO
-
-The site includes localized metadata, canonical URLs, language alternates, Open Graph and X cards, JSON-LD, `sitemap.xml`, `robots.txt`, a web manifest, and the AX7 favicon. `public/og.png` is the dedicated 1200 × 630 social card.
-
-## Deploy to Vercel
-
-1. Push the repository to your Git provider.
-2. Import the project into Vercel.
-3. Set the Vercel **Root Directory** to `web` if deploying from the repository root.
-4. Add the MongoDB, Blob, admin-auth, and optional Sanity environment variables for Production, Preview, and Development. Use separate preview credentials when possible.
-5. Keep the standard Next.js build command (`npm run build`) and output settings.
-6. Deploy, then add `https://ax7mov.com` as a Sanity CORS origin.
-7. Connect `ax7mov.com` only after the Vercel project has been reviewed and approved.
-
-No deployment, domain purchase, external account connection, or paid service creation is performed by this repository.
+The app includes localized metadata, canonical and alternate-language URLs, Open Graph and Twitter metadata, JSON-LD, `robots.txt`, and a generated sitemap. Interactive controls, forms, dialogs, and loading states include keyboard and screen-reader support.

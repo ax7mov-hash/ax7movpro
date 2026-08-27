@@ -11,8 +11,7 @@ const safeImageUrl = z
       const url = new URL(value);
       return (
         url.protocol === "https:" &&
-        (url.hostname === "cdn.sanity.io" ||
-          url.hostname.endsWith(".public.blob.vercel-storage.com"))
+        url.hostname.endsWith(".public.blob.vercel-storage.com")
       );
     } catch {
       return false;
